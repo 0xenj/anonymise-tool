@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil d'Anonymisation</title>
+
+    <!-- Lien vers la favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+            width: 50%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #003366;
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+        }
+
+        #fileInput {
+            display: block;
+            margin: 20px auto;
+        }
+
+        button {
+            background-color: #003366;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00509e;
+        }
+
+        /* Dashboard */
+        #dashboard {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .dashboard-info {
+            font-size: 1.1rem;
+            color: #003366;
+        }
+
+        #remove-folder {
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #remove-folder:hover {
+            background-color: #c0392b;
+        }
+
+        #loading-spinner {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #00509e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Barre de progression */
+        #progress-container {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 25px;
+            background-color: #003366;
+            text-align: center;
+            color: white;
+            line-height: 25px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Outil d'Anonymisation des Données</h1>
+        
+        <input type="file" id="fileInput" webkitdirectory directory multiple onchange="handleFileSelect()">
+
+        <div id="dashboard">
+            <h3>Informations sur le dossier importé :</h3>
+            <p id="folder-name" class="dashboard-info"></p>
+            <p id="folder-size" class="dashboard-info"></p>
+            <button id="remove-folder" onclick="clearSelection()">Supprimer le dossier</button>
+        </div>
+
+        <button onclick="uploadFiles()">Lancer l'anonymisation</button>
+
+        <div id="loading-spinner">
+            <div class="spinner"></div>
+            <p>Traitement en cours...</p>
+        </div>
+
+        <!-- Barre de progression -->
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const dashboard = document.getElementById('dashboard');
+        const folderNameElement = document.getElementById('folder-name');
+        const folderSizeElement = document.getElementById('folder-size');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress-container');
+        let totalSize = 0;  // Variable globale pour stocker la taille totale du dossier
+
+        // Fonction pour formater la taille du dossier
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Fonction pour mettre à jour le tableau de bord
+        function updateDashboard(files) {
+            totalSize = 0;
+            for (let i = 0; i < files.length; i++) {
+                totalSize += files[i].size;
+            }
+
+            const folderName = files[0].webkitRelativePath.split('/')[0] || "Dossier importé";
+            folderNameElement.textContent = "Nom du dossier : " + folderName;
+            folderSizeElement.textContent = "Taille totale : " + formatBytes(totalSize);
+            dashboard.style.display = 'block';  // Afficher le tableau de bord
+        }
+
+        // Gérer l'importation par bouton
+        function handleFileSelect() {
+            const files = fileInput.files;
+            if (files.length > 0) {
+                updateDashboard(files);  // Mise à jour du tableau de bord
+            }
+        }
+
+        // Fonction pour vider la sélection de fichiers
+        function clearSelection() {
+            fileInput.value = '';  // Réinitialiser l'input file
+            dashboard.style.display = 'none';  // Masquer le tableau de bord
+        }
+
+        // Fonction pour afficher la progression
+        function updateProgressBar(percentage) {
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+        }
+
+        // Adapter la durée de la progression en fonction de la taille totale du dossier
+        function simulateProgress(size) {
+            const duration = Math.min(5000, size / 100000 * 500);  // Maximum de 5 secondes
+            let start = Date.now();
+            let progressInterval = setInterval(() => {
+                let timeElapsed = Date.now() - start;
+                let percentage = Math.min(100, Math.floor((timeElapsed / duration) * 100));
+                updateProgressBar(percentage);
+
+                if (percentage === 100) {
+                    clearInterval(progressInterval);
+                }
+            }, 100);  // Met à jour toutes les 100ms
+        }
+
+        // Fonction pour lancer le processus de traitement et afficher le spinner et la progression
+        function uploadFiles() {
+            if (fileInput.files.length > 0) {
+                loadingSpinner.style.display = 'block';  // Afficher le spinner de chargement
+                progressContainer.style.display = 'block';  // Afficher la barre de progression
+
+                const formData = new FormData();
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    formData.append('file', fileInput.files[i]);
+                }
+
+                // Simuler la progression en fonction de la taille du dossier
+                simulateProgress(totalSize);
+
+                fetch('/uploads', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        return response.blob();  // Obtenir le fichier zip en réponse
+                    } else {
+                        throw new Error('Échec du traitement');
+                    }
+                }).then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'processed_files.zip';  // Nom du fichier zip
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }).catch(error => {
+                    alert('Erreur lors du traitement : ' + error.message);
+                }).finally(() => {
+                    loadingSpinner.style.display = 'none';  // Masquer le spinner
+                    progressContainer.style.display = 'none';  // Masquer la barre de progression
+                });
+            } else {
+                alert('Veuillez sélectionner un dossier contenant des fichiers.');
+            }
+        }
+    </script>
+</body>
+</html>
