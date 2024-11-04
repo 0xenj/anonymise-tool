@@ -181,4 +181,5 @@ def handle_large_file(e):
     return "Le fichier est trop volumineux ! La taille maximale autorisée est de {} Mo.".format(app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)), 413
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
