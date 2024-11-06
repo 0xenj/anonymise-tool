@@ -13,6 +13,9 @@ from transformers import AutoTokenizer, AutoModelForTokenClassification, pipelin
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 from flask_cors import CORS
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 CORS(app)
@@ -137,6 +140,7 @@ def index():
 
 @app.route('/uploads', methods=['POST'])
 def upload_files():
+    logging.info("Upload route accessed")
     shutil.rmtree(UPLOAD_FOLDER)
     shutil.rmtree(PROCESSED_FOLDER)
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -148,6 +152,8 @@ def upload_files():
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         file.save(file_path)
+
+    logging.info("Processing files in folder")
 
     process_files_in_folder(UPLOAD_FOLDER, PROCESSED_FOLDER)
 
