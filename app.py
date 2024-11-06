@@ -14,6 +14,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 from flask_cors import CORS
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -152,6 +153,15 @@ def upload_files():
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         file.save(file_path)
+        app.logger.info(f"File saved at {file_path}")
+
+        if not os.path.exists(file_path):
+            app.logger.error(f"File {file_path} not found after saving.")
+            return "File not found", 500
+        else:
+            app.logger.info(f"File confirmed saved at {file_path}")
+        
+        time.sleep(0.1)
 
     logging.info("Processing files in folder")
 
