@@ -141,7 +141,8 @@ def index():
 
 @app.route('/uploads', methods=['POST'])
 def upload_files():
-    logging.info("Upload route accessed")
+    logging.info(f"Upload route accessed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     shutil.rmtree(UPLOAD_FOLDER)
     shutil.rmtree(PROCESSED_FOLDER)
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -153,7 +154,7 @@ def upload_files():
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         file.save(file_path)
-        app.logger.info(f"File saved at {file_path}")
+        logging.info(f"File saved and confirmed at {file_path}")
 
         if not os.path.exists(file_path):
             app.logger.error(f"File {file_path} not found after saving.")
@@ -163,9 +164,14 @@ def upload_files():
         
         time.sleep(0.1)
 
-    logging.info("Processing files in folder")
+    logging.info(f"Starting processing at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     process_files_in_folder(UPLOAD_FOLDER, PROCESSED_FOLDER)
+
+    processed_files = os.listdir(PROCESSED_FOLDER)
+    if not processed_files:
+        logging.error("No files found in the processed folder after processing.")
+        return "Processing failed. No files in output.", 500
 
     zip_filename = "processed_files.zip"
     zip_filepath = os.path.join(PROCESSED_FOLDER, zip_filename)
@@ -175,6 +181,7 @@ def upload_files():
                 if file != zip_filename:
                     zipf.write(os.path.join(root, file), arcname=file)
 
+    logging.info(f"Zip file created at {zip_filepath}")
     return send_from_directory(PROCESSED_FOLDER, zip_filename, as_attachment=True)
 
 @app.errorhandler(RequestEntityTooLarge)
